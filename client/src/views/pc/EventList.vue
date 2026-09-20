@@ -107,6 +107,10 @@
     }
 
     function openStatus(row) {
+        if (store.role !== 'admin') {
+            ElMessage.warning('此操作需要管理员权限')
+            return
+        }
         Object.assign(statusForm, { id: row.id, status: row.status, handler_note: row.handler_note || '' })
         dialogVisible.value = true
     }
@@ -121,6 +125,10 @@
     }
 
     async function handleDelete(id) {
+        if (store.role !== 'admin') {
+            ElMessage.warning('此操作需要管理员权限')
+            return
+        }
         await ElMessageBox.confirm('确定删除此事件？', '警告', { type: 'warning' })
         await eventApi.remove(id)
         ElMessage.success('已删除')

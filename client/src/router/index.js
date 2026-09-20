@@ -30,30 +30,37 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const store = useUserStore()
+    const isMobileRoute = to.path.startsWith('/m')
     // 判断是否登录或者注册（包括 /login, /register, /m/login, /m/reister）
     const isAuthPage = to.path.includes('/login') || to.path.includes('/register')
     // 根据是否移动端觉得主页和登录页路径
-    const homePath = isMobile ? '/m/list' : '/list'
+    const listPath = isMobile ? '/m/list' : '/list'
     const loginPath = isMobile ? '/m/login' : '/login'
 
-    if (isAuthPage){
-        if(store.token){
-            next({
-				path: homePath
-			})
-			return false
+    // 第一层：路径前缀与设备不匹配 → 修正到对应端的路径
+    if (isMobile && !isMobileRoute) {
+        const map = {
+        '/': '/m/list',
+        '/login': '/m/login',
+        '/register': '/m/register',
+        '/list': '/m/list'
         }
-        next()
-        return 
-    } 
-
-    if (!store.token) {
-        next({ path: loginPath })
-        return
+        return next(map[to.path] || '/m/list')
     }
-    
-    if(to.meta.adminOnly && store.role !== 'admin') {
-        next({ path: homePath })
+    // 第二层： 已经登录用户访问登录/注册页 → 直接跳列表
+    const authPages = ['/login', '/register', '/m/login', '/m/register']
+    if (authPages.includes(top.path) && store.token) {
+        return next(listPath)
+    }
+
+    // 第三层： 需要鉴权但无 token → 跳登录
+    if (to.meta.requiresAuth && !store.token) {
+        return next(loginPath)
+    }
+
+    // 第四层： 需要管理员单角色不符 → 跳列表
+    if (to.meta.adminOnly && store.role !== 'admin') {
+        return next(listPath)
     }
     
     next()

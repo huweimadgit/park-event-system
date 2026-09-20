@@ -30,7 +30,13 @@
             <!-- 图片上传 -->
             <van-field label="照片">
                 <template #input>
-                    <van-uploader v-model="fileList" :max-count="3" :after-read="afterRead" :before-delete="onDelete" accept="image/*"></van-uploader>
+                    <van-uploader 
+                    v-model="fileList" 
+                    :max-count="3" 
+                    :after-read="afterRead" 
+                    :before-delete="onDelete" 
+                    accept="image/*"
+                    ></van-uploader>
                 </template>
             </van-field>
 

@@ -55,8 +55,9 @@
 
         // 初始化地图
         map = L.map(mapRef.value, { zoomControl: true }).setView([39.9042, 116.4074], 13)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-            attribution: '© CartoDB'
+        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['1', '2', '3', '4'],
+            attribution: '© 高德地图'
         }).addTo(map)
 
         // 拉数据
@@ -101,7 +102,10 @@
                 `<b>${p.title}</b><br/>类型: ${typeMap[p.type] || p.type}<br/>状态: ${statusMap[p.status] || p.status}<br/>地址: ${p.address || '-'}`
             )
         });
-
+        if( points.length > 0) {
+            const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]))
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 })
+        }
         // 响应式
         function handleResize() {
             trendChart?.resize();
