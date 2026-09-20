@@ -33,4 +33,23 @@ db.exec(`
   );
 `)
 
+// 开发环境种子数据（仅当 events 表为空时执行）
+const count = db.prepare('SELECT COUNT(*) AS c FROM events').get().c
+if (count === 0) {
+  const seed = db.prepare(`
+      INSERT INTO events (title, description, type, status, latitude, longitude, address, reporter_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `)
+  const types = ['faility', 'environment', 'safety', 'other']
+  const statuses = ['pending', 'processing', 'done']
+  for (let i = 0; i < 30; i++) {
+    seed.run(
+      `事件${i + 1}`, `模拟描述${i + 1}`,
+      types[i % 4], statuses[i % 3],
+      39.90 + Math.random() * 0.04,
+      116.40 + Math.random() * 0.04,
+      `北京市某园区${i + 1}号点位`
+    )
+  }
+}
 export default db
