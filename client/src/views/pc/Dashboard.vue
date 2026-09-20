@@ -2,14 +2,14 @@
     <div class="dashboard">
         <div class="header">
             <h2>园区事件驾驶舱</h2>
-            <el-button @click="$router.push('/events')">返回列表</el-button>
+            <el-button @click="$router.push('/list')">返回列表</el-button>
         </div>
 
         <!-- 指标卡 -->
         <div class="cards">
             <div class="card" v-for="c in cards" :key="c.label">
                 <div class="num">{{ c.value }}</div>
-                <div class="label">{{ c.lable }}</div>
+                <div class="label">{{ c.label }}</div>
             </div>
         </div>
 
@@ -49,14 +49,14 @@
 
     onMounted(async () => {
         // 初始化图表
-        trendChart = echarts.init(trendRef.value)
-        typeChart = echarts.init(typeRef.value)
-        statusChart = echarts.init(statusRef.value)
+        trendChart = echarts.init(trendRef.value, 'dark')
+        typeChart = echarts.init(typeRef.value, 'dark')
+        statusChart = echarts.init(statusRef.value, 'dark')
 
         // 初始化地图
-        map = L.map(mapRef.value).setView([39.9042, 116.4074], 13)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        map = L.map(mapRef.value, { zoomControl: true }).setView([39.9042, 116.4074], 13)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+            attribution: '© CartoDB'
         }).addTo(map)
 
         // 拉数据
@@ -74,11 +74,19 @@
             yAxis: { type: 'value', minInterval: 1 },
             series: [{ type: 'line', data: stats.trend.map(t => t.count), smooth: true, areaStyle: {} }]
         })
-
+        // 类型饼图
+        typeChart.setOption({
+            title: { text: '事件类型分布', left: 'center', textStyle: { fontSize: 14 } },
+            tooltip: { trigger: 'item' },
+            series: [{ 
+                type: 'pie', radius: ['40%', '65%'],
+                data: stats.typeDist.map(t => ({ name: typeMap[t.type] || t.type, value: t.count })),
+                label: { formatter: '{b}：{c}' }
+            }]
+        })
         // 状态柱状图
         statusChart.setOption({
-            title: { text: '时间状态分布', left: 'center', textStyle: { fontSize: 14 } },
-            tooltip: { trigger: 'axis' },
+            title: { text: '事件状态分布', left: 'center', textStyle: { fontSize: 14 } },
             xAxis: { type: 'category', data: stats.statusDist.map(s => statusMap[s.status] || s.status) },
             yAxis: { type: 'value', minInterval: 1 },
             series: [{ type: 'bar', data: stats.statusDist.map(s => s.count), barWidth: '50%' }]
@@ -153,8 +161,8 @@
     }
     .chart {
         flex: 1;
-        padding: 10px;
-        height: 300px;
+        padding: 12px;
+        height: 320px;
         background-color: #1e293b;
         border-radius: 8px;
     }
@@ -164,7 +172,7 @@
         overflow: hidden;
     }
     .map {
-        height: 100%;
+        height: 400px;
         width: 100%;
     }
 </style>

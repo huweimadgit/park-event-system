@@ -8,6 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
 router.post('/register', async (req, res) => {
   const { username, password, role } = req.body
+  console.log(req)
   if (!username || !password) return res.status(400).json({ message: '用户名和密码不能为空' })
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username)
   if (exists) return res.status(409).json({ message: '用户名已存在' })

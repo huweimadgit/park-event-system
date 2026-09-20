@@ -40,7 +40,7 @@ if (count === 0) {
       INSERT INTO events (title, description, type, status, latitude, longitude, address, reporter_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, 1)
     `)
-  const types = ['faility', 'environment', 'safety', 'other']
+  const types = ['facility', 'environment', 'safety', 'other']
   const statuses = ['pending', 'processing', 'done']
   for (let i = 0; i < 30; i++) {
     seed.run(

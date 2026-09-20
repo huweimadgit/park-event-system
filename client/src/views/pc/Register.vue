@@ -1,8 +1,3 @@
-<script setup lang="ts">
-import { formContextKey } from 'element-plus';
-
-</script>
-
 <template>
     <div class="login-container">
         <el-card class="login-card">
@@ -60,9 +55,9 @@ import { formContextKey } from 'element-plus';
         loading.value = true
         try {
             const data = await authApi.register(form)
-            store.seAuth(data.token, data.username, data.role)
+            store.setAuth(data.token, data.username, data.role)
             ElMessage.success('注册成功，已自动登录')
-            router.push('/events')
+            router.push('/list')
         } catch (error) {
             ElMessage.error(error.response?.data?.message || '注册失败')
         } finally {

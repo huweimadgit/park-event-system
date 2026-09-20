@@ -2,13 +2,13 @@
     <div class="m-page">
         <van-nav-bar title="我的上报" fixed placeholder>
             <template #right>
-                <van-button size="small" type="primary" $click="$router.push('/m/create')">上报</van-button>
+                <van-button size="small" type="primary" @click="$router.push('/m/create')">上报</van-button>
             </template>
         </van-nav-bar>
 
-        <var-pull-refresh v-model="refreshing" @refresh="onRefresh">
+        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
             <van-list v-model:loading="loading" :finished="finished" @load="onLoad">
-                <van-cell v-for="item in list" :key="item.id" is-link @click="$router.push('/m/detail/${item.id}')">
+                <van-cell v-for="item in list" :key="item.id" is-link @click="$router.push(`/m/detail/${item.id}`)">
                     <template #title>
                         <div class="cell-title">
                             <span>{{ item.title }}</span>
@@ -17,11 +17,14 @@
                     </template>
                     <template #label>
                         <div>{{ typeLabel(item.type) }} · {{ item.address || '无地址' }}</div>
+                        <div v-if="item.latitude" class="coords">
+                            📍 {{ item.latitude.toFixed(4) }}, {{ item.longitude.toFixed(4) }}
+                        </div>
                         <div class="time">{{ item.created_at }}</div>
                     </template>
                 </van-cell>
             </van-list>
-        </var-pull-refresh>
+        </van-pull-refresh>
 
         <van-tabbar>
             <van-tabbar-item to="/m/list" icon="records">上报记录</van-tabbar-item>

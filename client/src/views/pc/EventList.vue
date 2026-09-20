@@ -6,7 +6,7 @@
                 <el-select v-model="filterType" placeholder="类型" clearable style="width:140px"
                         @change="fetch">
                     <el-option label="设施损坏" value="facility" />
-                    <el-option label="换卫生" value="environment" />
+                    <el-option label="环境卫生" value="environment" />
                     <el-option label="安全隐患" value="safety" />
                     <el-option label="其他" value="other" />
                 </el-select>
@@ -72,7 +72,7 @@
     import { ref, reactive, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
-    import { evnetApi } from '../../api'
+    import { eventApi } from '../../api'
     import { useUserStore } from '../../stores/user'
 
     const list = ref([])
@@ -85,7 +85,7 @@
     const loading = ref(false);
     const dialogVisible = ref(false);
     const statusForm = reactive({ id: null, status: '', handler_note: '' })
-    const router = useRouter
+    const router = useRouter()
     const store = useUserStore()
 
     const typeMap = { facility: '设施损坏', environment: '环境卫生', safety: '安全隐患', other: '其他' }
@@ -97,7 +97,7 @@
     async function fetch() {
         loading.value = true
         try {
-            const data = await evnetApi.getList({
+            const data = await eventApi.getList({
                 page: page.value, size: size.value,
                 keyword: keyword.value, type: filterType.value, status: filterStatus.value
             })

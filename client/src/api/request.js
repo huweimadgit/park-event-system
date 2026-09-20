@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useUserStore } from '../stores/user'
 import router from '../router'
 
-const request = axios.create({ beseURL: '/api', timeout: 15000 })
+const request = axios.create({ baseURL: '/api', timeout: 15000 })
 
 request.interceptors.request.use(config => {
     const store = useUserStore()

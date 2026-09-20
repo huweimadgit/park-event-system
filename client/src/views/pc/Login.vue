@@ -47,7 +47,7 @@
             store.setAuth(data.token, data.username, data.role)
             ElMessage.success('登陆成功')
             // 管理员去列表页，巡检员去移动端（或者也去列表页）
-            router.push('/events')
+            router.push('/list')
         } catch (error) {
             ElMessage.error(error.response?.data?.message || '登录失败')
         } finally {

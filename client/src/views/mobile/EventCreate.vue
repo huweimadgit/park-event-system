@@ -2,10 +2,10 @@
     <div class="m-page">
         <van-nav-bar title="上报事件" left-arrow @click-left="$router.back()" fixed placeholder></van-nav-bar>
 
-        <van-form @sumbit="onSubmit">
+        <van-form @submit="onSubmit">
             <van-field v-model="form.title" label="标题" placeholder="简要描述问题" :rules="[{ required: true, message: '请输入标题'}]"></van-field>
             <van-field v-model="form.description" label="描述" type="textarea" rows="3" placeholder="详情说明"></van-field>
-            <van-field name="type" lable="类型" :rules="[{ required: true, message: '请选择类型' }]">
+            <van-field name="type" label="类型" :rules="[{ required: true, message: '请选择类型' }]">
                 <template #input>
                     <van-radio-group v-model="form.type" direction="horizontal">
                         <van-radio name="facility">设备损坏</van-radio>
@@ -20,8 +20,8 @@
             <van-field label="位置">
                 <template #input>
                     <div class="location-box">
-                        <div v-if="loadRouteLocation.lat">{{ loadRouteLocation.address || '已获取坐标' }} ({{ loadRouteLocation.lat.toFixed(4) }}, {{ loadRouteLocation.lng.toFixed(4) }})</div>
-                        <div v-else class="on-loc">未定位</div>
+                        <div v-if="location.lat">{{ location.address || '已获取坐标' }} ({{ location.lat.toFixed(4) }}, {{ location.lng.toFixed(4) }})</div>
+                        <div v-else class="no-loc">未定位</div>
                         <van-button size="small" type="primary" @click="getLocation" :loading="locating">获取定位</van-button>
                     </div>
                 </template>
@@ -65,10 +65,18 @@
                 form.latitude = pos.coords.latitude
                 form.longitude = pos.coords.longitude
                 // 简单显示坐标作为地址 （生产环境应调用逆向地址编码 API）
-                location.address = `纬度${pos.coords.latitude.toFixed(4)}, 经度${pos.coords.longitude.toFixed(4)}`
+                const addrText = `纬度${pos.coords.latitude.toFixed(4)}, 经度${pos.coords.longitude.toFixed(4)}`
+                location.address = addrText
+                form.address = addrText
                 locating.value = false
                 showToast('定位成功')
-            }
+            },
+            (err) => {
+                locating.value = false
+                showToast('定位失败:'+ err.message)
+                console.log(err.message)
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
         )
     }
 
