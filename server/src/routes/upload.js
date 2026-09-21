@@ -38,7 +38,7 @@ router.post('/', authMiddleware, upload.array('images', 3), async (req, res) => 
       const key = `events/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
       await s3.send(new PutObjectCommand({
-        Bucket: process.env.B2_BUCKET_NAME,
+        Bucket: process.env.S3_BUCKET,
         Key: key,
         Body: file.buffer,
         ContentType: file.mimetype
