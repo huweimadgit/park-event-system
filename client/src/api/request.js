@@ -2,7 +2,12 @@ import axios from 'axios'
 import { useUserStore } from '../stores/user'
 import router from '../router'
 
-const request = axios.create({ baseURL: '/api', timeout: 15000 })
+const request = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL 
+    ? `${import.meta.env.VITE_API_BASE_URL}/api` 
+    : '/api',
+  timeout: 15000
+})
 
 request.interceptors.request.use(config => {
     const store = useUserStore()
