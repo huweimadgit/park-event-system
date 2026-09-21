@@ -6,7 +6,7 @@ const router = Router()
 router.use(authMiddleware)
 
 // 列表（支持筛选/搜索/分页）
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const page = Number(req.query.page) || 1
   const size = Number(req.query.size) || 10
   const { keyword, type, status, startDate, endDate } = req.query
@@ -17,25 +17,28 @@ router.get('/', (req, res) => {
   if (keyword) { conditions.push('(title LIKE ? OR address LIKE ?)'); params.push(`%${keyword}%`, `%${keyword}%`) }
   if (type) { conditions.push('type = ?'); params.push(type) }
   if (status) { conditions.push('status = ?'); params.push(status) }
-  // 新增： 时间范围
-  if (startDate) {
-    conditions.push('date(e.created_at) >= date(?)')
-    params.push(startDate)
-  }
-  if (endDate) {
-    conditions.push('date(e.created_at) <= date(?)')
-    params.push(endDate)
-  }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
-  const total = db.prepare(`SELECT COUNT(*) AS count FROM events e ${where}`).get(...params).count
-  const list = db.prepare(`
-    SELECT e.*, u.username AS reporter_name
-    FROM events e LEFT JOIN users u ON e.reporter_id = u.id
-    ${where} ORDER BY e.id DESC LIMIT ? OFFSET ?
-  `).all(...params, size, offset)
+  if (startDate) { conditions.push('date(e.created_at) >= date(?)'); params.push(startDate) }
+  if (endDate) { conditions.push('date(e.created_at) <= date(?)'); params.push(endDate) }
 
-  // 解析 images JSON
-  const parsed = list.map(row => ({ ...row, images: JSON.parse(row.images || '[]') }))
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  const countResult = await db.execute({
+    sql: `SELECT COUNT(*) AS count FROM events e ${where}`,
+    args: params
+  })
+  const total = Number(countResult.rows[0].count)
+
+  const listResult = await db.execute({
+    sql: `SELECT e.*, u.username AS reporter_name
+      FROM events e LEFT JOIN users u ON e.reporter_id = u.id
+      ${where} ORDER BY e.id DESC LIMIT ? OFFSET ?`,
+    args: [...params, size, offset]
+  })
+
+  const parsed = listResult.rows.map(row => ({
+    ...row,
+    images: JSON.parse(row.images || '[]')
+  }))
   res.json({ list: parsed, total, page, size })
 })
 
