@@ -1,27 +1,24 @@
 import { Router } from 'express'
 import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { authMiddleware } from '../middleware/auth.js'
 
 const router = Router()
 
-// 确保上传目录存在
-const uploadDir = 'uploads'
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    // 用时间戳 + 随机数避免文件名冲突
-    const ext = path.extname(file.originalname)
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`)
-  }
+const s3 = new S3Client({
+  region: process.env.S3_REGION,
+  endpoint: process.env.S3_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY,
+    secretAccessKey: process.env.S3_SECRET_KEY
+  },
+  forcePathStyle: true
 })
 
+// 用内存存储，不写到磁盘
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },  // 单文件最大 5MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp']
     if (allowed.includes(file.mimetype)) cb(null, true)
@@ -29,10 +26,34 @@ const upload = multer({
   }
 })
 
-// 多图上传，字段名 images，最多 3 张
-router.post('/', authMiddleware, upload.array('images', 3), (req, res) => {
-  const files = (req.files || []).map(f => `/uploads/${f.filename}`)
-  res.json({ files })
+router.post('/', authMiddleware, upload.array('images', 3), async (req, res) => {
+  try {
+    const files = req.files || []
+    if (files.length === 0) return res.status(400).json({ message: '请上传图片' })
+
+    const uploadedUrls = []
+
+    for (const file of files) {
+      const ext = file.originalname.split('.').pop()
+      const key = `events/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.B2_BUCKET_NAME,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype
+      }))
+
+      // 公开访问 URL
+      const publicUrl = `${process.env.B2_PUBLIC_URL_BASE}/${key}`
+      uploadedUrls.push(publicUrl)
+    }
+
+    res.json({ files: uploadedUrls })
+  } catch (err) {
+    console.error('Upload error:', err)
+    res.status(500).json({ message: '上传失败' })
+  }
 })
 
 export default router
