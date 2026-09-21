@@ -45,7 +45,7 @@ router.post('/', authMiddleware, upload.array('images', 3), async (req, res) => 
       }))
 
       // 公开访问 URL
-      const publicUrl = `${process.env.B2_PUBLIC_URL_BASE}/${key}`
+      const publicUrl = `${process.env.S3_PUBLIC_URL}/${key}`
       uploadedUrls.push(publicUrl)
     }
 
