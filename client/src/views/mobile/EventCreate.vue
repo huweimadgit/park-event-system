@@ -31,16 +31,16 @@
             <van-field label="照片">
                 <template #input>
                     <van-uploader 
-                    v-model="fileList" 
-                    :max-count="3" 
-                    :after-read="afterRead" 
-                    :before-delete="onDelete" 
-                    accept="image/*"
-                    ></van-uploader>
+                        v-model="fileList" 
+                        :max-count="3" 
+                        :after-read="afterRead" 
+                        :before-delete="onDelete" 
+                        accept="image/*"
+                        ></van-uploader>
                 </template>
             </van-field>
 
-            <div style="margin: 16px">
+            <div style="margin: 18px">
                 <van-button round block type="primary" native-type="submit" :loading="submitting">提交上报</van-button>
             </div>
         </van-form>
