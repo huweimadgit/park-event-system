@@ -9,7 +9,7 @@ router.use(authMiddleware)
 router.get('/', (req, res) => {
   const page = Number(req.query.page) || 1
   const size = Number(req.query.size) || 10
-  const { keyword, type, status } = req.query
+  const { keyword, type, status, startDate, endDate } = req.query
   const offset = (page - 1) * size
 
   const conditions = []
@@ -17,9 +17,17 @@ router.get('/', (req, res) => {
   if (keyword) { conditions.push('(title LIKE ? OR address LIKE ?)'); params.push(`%${keyword}%`, `%${keyword}%`) }
   if (type) { conditions.push('type = ?'); params.push(type) }
   if (status) { conditions.push('status = ?'); params.push(status) }
-
+  // 新增： 时间范围
+  if (startDate) {
+    conditions.push('date(e.created_at) >= date(?)')
+    params.push(startDate)
+  }
+  if (endDate) {
+    conditions.push('date(e.created_at) <= date(?)')
+    params.push(endDate)
+  }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
-  const total = db.prepare(`SELECT COUNT(*) AS count FROM events ${where}`).get(...params).count
+  const total = db.prepare(`SELECT COUNT(*) AS count FROM events e ${where}`).get(...params).count
   const list = db.prepare(`
     SELECT e.*, u.username AS reporter_name
     FROM events e LEFT JOIN users u ON e.reporter_id = u.id

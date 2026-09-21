@@ -16,7 +16,20 @@
                     <el-option label="处理中" value="processing" />
                     <el-option label="已完成" value="done" />
                 </el-select>
+                <div style="flex-shrink:0">
+                    <el-date-picker
+                        v-model="dateRange"
+                        type="daterange"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期"
+                        value-format="YYYY-MM-DD"
+                        style="width: 260px;"
+                        @change="fetch"
+                    ></el-date-picker>
+                </div>
                 <el-button type="primary" @click="fetch">查询</el-button>
+                <el-button @click="resetFilters">重置</el-button>
                 <el-button type="success" @click="$router.push('/dashboard')">驾驶舱</el-button>
                 <el-button @click="handleLogout">退出</el-button>
             </div>
@@ -82,6 +95,7 @@
     const keyword = ref('')
     const filterType = ref('')
     const filterStatus = ref('')
+    const dateRange = ref([])
     const loading = ref(false);
     const dialogVisible = ref(false);
     const statusForm = reactive({ id: null, status: '', handler_note: '' })
@@ -99,7 +113,9 @@
         try {
             const data = await eventApi.getList({
                 page: page.value, size: size.value,
-                keyword: keyword.value, type: filterType.value, status: filterStatus.value
+                keyword: keyword.value, type: filterType.value, status: filterStatus.value,
+                startDate: dateRange.value?.[0] || '',
+                endDate: dateRange.value?.[1] || ''
             })
             list.value = data.list
             total.value = data.total
@@ -138,6 +154,15 @@
     function handleLogout() {
         store.logout();
         router.push('/login')
+    }
+
+    function resetFilters() {
+        keyword.value = ''
+        filterType.value = ''
+        filterStatus.value = ''
+        dateRange.value = []
+        page.value = 1
+        fetch()
     }
 
     onMounted(fetch)
