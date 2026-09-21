@@ -5,7 +5,7 @@ import { authMiddleware, adminOnly } from '../middleware/auth.js'
 const router = Router()
 router.use(authMiddleware)
 
-// 列表（支持筛选/搜索/分页）
+// 列表（筛选/搜索/分页）
 router.get('/', async (req, res) => {
   const page = Number(req.query.page) || 1
   const size = Number(req.query.size) || 10
@@ -14,9 +14,12 @@ router.get('/', async (req, res) => {
 
   const conditions = []
   const params = []
-  if (keyword) { conditions.push('(title LIKE ? OR address LIKE ?)'); params.push(`%${keyword}%`, `%${keyword}%`) }
-  if (type) { conditions.push('type = ?'); params.push(type) }
-  if (status) { conditions.push('status = ?'); params.push(status) }
+  if (keyword) {
+    conditions.push('(e.title LIKE ? OR e.address LIKE ?)')
+    params.push(`%${keyword}%`, `%${keyword}%`)
+  }
+  if (type) { conditions.push('e.type = ?'); params.push(type) }
+  if (status) { conditions.push('e.status = ?'); params.push(status) }
   if (startDate) { conditions.push('date(e.created_at) >= date(?)'); params.push(startDate) }
   if (endDate) { conditions.push('date(e.created_at) <= date(?)'); params.push(endDate) }
 
@@ -43,90 +46,125 @@ router.get('/', async (req, res) => {
 })
 
 // 详情
-router.get('/:id', (req, res) => {
-  const row = db.prepare(`
-    SELECT e.*, u.username AS reporter_name
-    FROM events e LEFT JOIN users u ON e.reporter_id = u.id WHERE e.id = ?
-  `).get(req.params.id)
+router.get('/:id', async (req, res) => {
+  const result = await db.execute({
+    sql: `SELECT e.*, u.username AS reporter_name
+      FROM events e LEFT JOIN users u ON e.reporter_id = u.id
+      WHERE e.id = ?`,
+    args: [req.params.id]
+  })
+  const row = result.rows[0]
   if (!row) return res.status(404).json({ message: '事件不存在' })
   res.json({ ...row, images: JSON.parse(row.images || '[]') })
 })
 
 // 新建
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { title, description, type, images, latitude, longitude, address } = req.body
   if (!title) return res.status(400).json({ message: '标题不能为空' })
-  const result = db.prepare(`
-    INSERT INTO events (title, description, type, images, latitude, longitude, address, reporter_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(title, description || '', type || 'other', JSON.stringify(images || []),
-         latitude || null, longitude || null, address || '', req.user.id)
-  res.status(201).json({ id: result.lastInsertRowid })
+
+  const result = await db.execute({
+    sql: `INSERT INTO events (title, description, type, images, latitude, longitude, address, reporter_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      title,
+      description || '',
+      type || 'other',
+      JSON.stringify(images || []),
+      latitude || null,
+      longitude || null,
+      address || '',
+      req.user.id
+    ]
+  })
+
+  res.status(201).json({ id: Number(result.lastInsertRowid) })
 })
 
 // 编辑
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { title, description, type, images, latitude, longitude, address } = req.body
-  db.prepare(`
-    UPDATE events SET title=?, description=?, type=?, images=?, latitude=?, longitude=?,
-    address=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-  `).run(title, description, type, JSON.stringify(images || []),
-         latitude, longitude, address, req.params.id)
+
+  await db.execute({
+    sql: `UPDATE events SET title=?, description=?, type=?, images=?,
+      latitude=?, longitude=?, address=?, updated_at=CURRENT_TIMESTAMP
+      WHERE id=?`,
+    args: [
+      title,
+      description,
+      type,
+      JSON.stringify(images || []),
+      latitude,
+      longitude,
+      address,
+      req.params.id
+    ]
+  })
+
   res.json({ message: '更新成功' })
 })
 
-// 变更状态（巡检员只能改自己的，管理员可改全部）
-router.patch('/:id/status', (req, res) => {
+// 变更状态
+router.patch('/:id/status', async (req, res) => {
   const { status, handler_note } = req.body
   const valid = ['pending', 'processing', 'done']
   if (!valid.includes(status)) return res.status(400).json({ message: '状态值无效' })
 
-  const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id)
+  const eventResult = await db.execute({
+    sql: 'SELECT * FROM events WHERE id = ?',
+    args: [req.params.id]
+  })
+  const event = eventResult.rows[0]
   if (!event) return res.status(404).json({ message: '事件不存在' })
-  if (req.user.role !== 'admin' && event.reporter_id !== req.user.id) {
+
+  if (req.user.role !== 'admin' && Number(event.reporter_id) !== Number(req.user.id)) {
     return res.status(403).json({ message: '无权操作此事件' })
   }
 
-  db.prepare('UPDATE events SET status=?, handler_note=?, updated_at=CURRENT_TIMESTAMP WHERE id=?')
-    .run(status, handler_note || '', req.params.id)
+  await db.execute({
+    sql: 'UPDATE events SET status=?, handler_note=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+    args: [status, handler_note || '', req.params.id]
+  })
+
   res.json({ message: '状态已更新' })
 })
 
 // 删除（仅管理员）
-router.delete('/:id', adminOnly, (req, res) => {
-  db.prepare('DELETE FROM events WHERE id = ?').run(req.params.id)
+router.delete('/:id', adminOnly, async (req, res) => {
+  await db.execute({
+    sql: 'DELETE FROM events WHERE id = ?',
+    args: [req.params.id]
+  })
   res.json({ message: '删除成功' })
 })
 
-// 驾驶舱统计数据
-router.get('/stats/overview', (req, res) => {
-  const total = db.prepare('SELECT COUNT(*) AS c FROM events').get().c
-  const pending = db.prepare("SELECT COUNT(*) AS c FROM events WHERE status='pending'").get().c
-  const today = db.prepare("SELECT COUNT(*) AS c FROM events WHERE date(created_at)=date('now')").get().c
+// 驾驶舱统计
+router.get('/stats/overview', async (req, res) => {
+  const totalR = await db.execute('SELECT COUNT(*) AS c FROM events')
+  const pendingR = await db.execute("SELECT COUNT(*) AS c FROM events WHERE status='pending'")
+  const todayR = await db.execute("SELECT COUNT(*) AS c FROM events WHERE date(created_at)=date('now')")
+  const trendR = await db.execute(
+    "SELECT date(created_at) AS date, COUNT(*) AS count FROM events GROUP BY date(created_at) ORDER BY date DESC LIMIT 7"
+  )
+  const typeR = await db.execute('SELECT type, COUNT(*) AS count FROM events GROUP BY type')
+  const statusR = await db.execute('SELECT status, COUNT(*) AS count FROM events GROUP BY status')
 
-  // 近 7 天趋势
-  const trend = db.prepare(`
-    SELECT date(created_at) AS date, COUNT(*) AS count
-    FROM events WHERE created_at >= date('now', '-7 days')
-    GROUP BY date(created_at) ORDER BY date
-  `).all()
-
-  // 类型分布
-  const typeDist = db.prepare('SELECT type, COUNT(*) AS count FROM events GROUP BY type').all()
-
-  // 状态分布
-  const statusDist = db.prepare('SELECT status, COUNT(*) AS count FROM events GROUP BY status').all()
-
-  res.json({ total, pending, today, trend, typeDist, statusDist })
+  res.json({
+    total: Number(totalR.rows[0].c),
+    pending: Number(pendingR.rows[0].c),
+    today: Number(todayR.rows[0].c),
+    trend: trendR.rows.reverse(),
+    typeDist: typeR.rows,
+    statusDist: statusR.rows
+  })
 })
 
-// 地图打点数据
-router.get('/map/points', (req, res) => {
-  const points = db.prepare(`
-    SELECT id, title, type, status, latitude AS lat, longitude AS lng, address
-    FROM events WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-  `).all()
-  res.json(points)
+// 地图打点
+router.get('/map/points', async (req, res) => {
+  const result = await db.execute(
+    'SELECT id, title, type, status, latitude AS lat, longitude AS lng, address FROM events WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
+  )
+  res.json(result.rows)
 })
 
 export default router
