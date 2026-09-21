@@ -12,9 +12,9 @@
                 </el-select>
                 <el-select v-model="filterStatus" placeholder="状态" clearable style="width: 140px;"
                         @change="fetch">
-                    <el-option lable="待处理" value="pending" />
-                    <el-option lable="处理中" value="processing" />
-                    <el-option lable="已完成" value="done" />
+                    <el-option label="待处理" value="pending" />
+                    <el-option label="处理中" value="processing" />
+                    <el-option label="已完成" value="done" />
                 </el-select>
                 <el-button type="primary" @click="fetch">查询</el-button>
                 <el-button type="success" @click="$router.push('/dashboard')">驾驶舱</el-button>
@@ -101,7 +101,7 @@
                 page: page.value, size: size.value,
                 keyword: keyword.value, type: filterType.value, status: filterStatus.value
             })
-            list.value = data.list;
+            list.value = data.list
             total.value = data.total
         } finally { loading.value = false }
     }
