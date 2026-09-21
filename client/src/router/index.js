@@ -31,8 +31,6 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const store = useUserStore()
     const isMobileRoute = to.path.startsWith('/m')
-    // 判断是否登录或者注册（包括 /login, /register, /m/login, /m/reister）
-    const isAuthPage = to.path.includes('/login') || to.path.includes('/register')
     // 根据是否移动端觉得主页和登录页路径
     const listPath = isMobile ? '/m/list' : '/list'
     const loginPath = isMobile ? '/m/login' : '/login'
@@ -49,7 +47,7 @@ router.beforeEach((to, from, next) => {
     }
     // 第二层： 已经登录用户访问登录/注册页 → 直接跳列表
     const authPages = ['/login', '/register', '/m/login', '/m/register']
-    if (authPages.includes(top.path) && store.token) {
+    if (authPages.includes(to.path) && store.token) {
         return next(listPath)
     }
 
