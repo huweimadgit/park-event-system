@@ -29,7 +29,7 @@
                     <van-image
                         v-for="(img, i) in detail.images"
                         :key="i"
-                        :src="img"
+                        :src="getImageUrl(img)"
                         width="100"
                         height="100"
                         fit="cover"
@@ -58,6 +58,7 @@
     import { useRoute } from 'vue-router'
     import { showImagePreview, showToast } from 'vant'
     import { eventApi } from '../../api'
+    import { getImageUrl } from '../../utils/image'
 
     const route = useRoute()
     const detail = ref(null)
@@ -70,7 +71,7 @@
 
     function previewImage(index) {
         showImagePreview({
-            images: detail.value.images,
+            images: detail.value.images.map(getImageUrl),
             startPosition: index
         })
     }

@@ -2,7 +2,7 @@
     <div class="login-container">
         <el-card class="login-card">
             <h2>园区事件管理系统</h2>
-            <el-form @submit.prevent="handleLogin">
+            <el-form @submit.prevent>
                 <el-form-item>
                     <el-input v-model="form.username" placeholder="用户名" size="large"></el-input>
                 </el-form-item>
@@ -16,7 +16,7 @@
                         @keyup.enter="handleLogin"
                     />
                 </el-form-item>
-                <el-button type="primary" native-type="submit" :loading="loading" size="large" style="width: 100%">登 录</el-button>
+                <el-button type="primary" @click="handleLogin" :loading="loading" size="large" style="width: 100%">登 录</el-button>
             </el-form>
             <p class="link">
                 没有账号？<router-link to="/register">去注册</router-link>
